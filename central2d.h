@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cassert>
 #include <vector>
-
+#include <omp.h>
 //ldoc on
 /**
  * # Jiang-Tadmor central difference scheme
@@ -328,8 +328,9 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
 {
     real dtcdx2 = 0.5 * dt / dx;
     real dtcdy2 = 0.5 * dt / dy;
-
+   // #pragma omp parallel{
     // Predictor (flux values of f and g at half step)
+ //   #pragma omp for
     for (int iy = 1; iy < ny_all-1; ++iy)
         for (int ix = 1; ix < nx_all-1; ++ix) {
             vec uh = u(ix,iy);
@@ -341,6 +342,7 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
         }
 
     // Corrector (finish the step)
+  //  #pragma omp for
     for (int iy = nghost-io; iy < ny+nghost-io; ++iy)
         for (int ix = nghost-io; ix < nx+nghost-io; ++ix) {
             for (int m = 0; m < v(ix,iy).size(); ++m) {
@@ -357,12 +359,14 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
                                g(ix+1,iy+1)[m] - g(ix+1,iy)[m] );
             }
         }
-
     // Copy from v storage back to main grid
+//    #pragma omp for  
     for (int j = nghost; j < ny+nghost; ++j){
         for (int i = nghost; i < nx+nghost; ++i){
             u(i,j) = v(i-io,j-io);
         }
+
+    }
     }
 }
 
