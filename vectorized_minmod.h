@@ -58,8 +58,8 @@
  */
 
 template <class real, class Physics>
-
 struct MinMod {
+    typedef typename Physics::tvec  tvec;	
     static constexpr real theta = 2.0;
 
     // Branch-free computation of minmod of two numbers
@@ -73,7 +73,7 @@ struct MinMod {
     // Limited combined slope estimate
 	// MAG: passed pointers instead of scalars, compute x derivative
 	
-    static real limdiffx(tvec&du, const tvec& u) {
+    static real limdiffx(tvec& du, const tvec& u, int nx_all) {
 		for(int index=0; index < u.size(); ++index){
 			for (int iy = 1; iy < ny_all-1; ++iy){
 				for (int ix = 1; ix < nx_all-1; ++ix) {		
@@ -88,7 +88,7 @@ struct MinMod {
 		}
 	}
 	// MAG: passed pointers instead of scalars, compute y derivative
-	static real limdiffy(tvec&du, const tvec& u) {
+	static real limdiffy(tvec& du, const tvec& u, int nx_all) {
 		for(int index=0; index < u.size(); ++index){
 			for (int iy = 1; iy < ny_all-1; ++iy){
 				for (int ix = 1; ix < nx_all-1; ++ix) {		

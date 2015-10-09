@@ -108,14 +108,17 @@ public:
         dx(w/nx), dy(h/ny),
         cfl(cfl), 
 		/// have to change the declaration ? make a new function in vectorized_shallow2d.h
-        u_ (nx_all * ny_all),
-        f_ (nx_all * ny_all),
-        g_ (nx_all * ny_all),
-        ux_(nx_all * ny_all),
-        uy_(nx_all * ny_all),
-        fx_(nx_all * ny_all),
-        gy_(nx_all * ny_all),
-        v_ (nx_all * ny_all) {}
+        for(index=0, index < 3, index++){
+			u_[i].resize(nxall*nyall)
+			f_[i].resize(nx_all * ny_all),
+			g_[i].resize(nx_all * ny_all),
+			ux_[i].resize(nx_all * ny_all),
+			uy_[i].resize(nx_all * ny_all),
+			fx_[i].resize(nx_all * ny_all),
+			gy_[i].resize(nx_all * ny_all),
+			v_[i].resize(nx_all * ny_all) 
+		}
+			{}
 
     // Advance from time 0 to time tfinal
     void run(real tfinal);
@@ -130,6 +133,7 @@ public:
     // Array size accessors
     int xsize() const { return nx; }
     int ysize() const { return ny; }
+	int 
     
     // Read / write elements of simulation state
     tvec&       operator()(int index, int i, int j) {
@@ -220,7 +224,7 @@ void Central2D<Physics, Limiter>::init(F f)
 {	///////////////////// have to change the init class
     for (int iy = 0; iy < ny; ++iy)
         for (int ix = 0; ix < nx; ++ix)
-            f(u(nghost+ix,nghost+iy), (ix+0.5)*dx, (iy+0.5)*dy);
+            f(u_, (ix+0.5)*dx, (iy+0.5)*dy, nghost+ix, nghost+iy, nxall);
 }
 
 /**
@@ -245,7 +249,6 @@ void Central2D<Physics, Limiter>::apply_periodic()
 {
     // Copy data between right and left boundaries
 	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
-
 		for (int iy = 0; iy < ny_all; ++iy){
 			for (int ix = 0; ix < nghost; ++ix) {
 				u(index,ix,          iy) = uwrap(index,ix,          iy);
@@ -255,7 +258,6 @@ void Central2D<Physics, Limiter>::apply_periodic()
 	}
     // Copy data between top and bottom boundaries
 	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
-	
 		for (int ix = 0; ix < nx_all; ++ix){
 			for (int iy = 0; iy < nghost; ++iy) {
 				u(index,ix,          iy) = uwrap(index,ix,          iy);
@@ -302,12 +304,12 @@ void Central2D<Physics, Limiter>::limited_derivs()
 			//MAG uses new limdiffx limdiffy (tvec du, tvec u);
 			
             // x derivs
-			Limiter::limdiffx(ux_, u_);
-			Limiter::limdiffx(fx_, f_);
+			Limiter::limdiffx(ux_, u_, nx_all);
+			Limiter::limdiffx(fx_, f_, nx_all);
 
             // y derivs
-			Limiter::limdiffy(uy_, u_);
-			Limiter::limdiffy(gy_, g_);			
+			Limiter::limdiffy(uy_, u_, nx_all);
+			Limiter::limdiffy(gy_, g_, nx_all);			
 
         
 }

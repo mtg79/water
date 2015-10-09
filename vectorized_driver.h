@@ -1,6 +1,6 @@
-#include "central2d.h"
-#include "shallow2d.h"
-#include "minmod.h"
+#include "vectorized_central2d.h"
+#include "vectorized_shallow2d.h"
+#include "vectorized_minmod.h"
 #include "meshio.h"
 
 #ifdef _OPENMP
@@ -44,7 +44,7 @@ typedef Central2D< Shallow2D, MinMod<Shallow2D::real> > Sim;
 // MAG: made new initialization for DAM_BREAK only
 // Circular dam break problem
 void dam_break(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
-{
+{	Sim::get
     x -= 1;
     y -= 1;
     u[0][iy*nx_all+ix] = 1.0 + 0.5*(x*x + y*y < 0.25+1e-5);
