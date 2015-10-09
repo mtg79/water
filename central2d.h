@@ -206,10 +206,10 @@ private:
 template <class Physics, class Limiter>
 template <typename F>
 void Central2D<Physics, Limiter>::init(F f)
-{
+{// MAG changes intialization (only done for dam break in driver file)
     for (int iy = 0; iy < ny; ++iy)
         for (int ix = 0; ix < nx; ++ix)
-            f(u(nghost+ix,nghost+iy), (ix+0.5)*dx, (iy+0.5)*dy);
+            f(u_, (ix+0.5)*dx, (iy+0.5)*dy, nghost+ix, nghost+iy, nxall);
 }
 
 /**

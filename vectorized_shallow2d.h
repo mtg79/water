@@ -71,27 +71,49 @@ struct Shallow2D {
 
     // Gravitational force (compile time constant)
     static constexpr real g = 9.8;
+	
+	//!!!!!!!!!!!!!!!!!!!!!!!! MAG have to somehow pass nx_all and ny_all to this  class
+	
+    // Compute shallow water fluxes F(U), G(U) 
+	//MAG: now updates whole tvec vector
+    static void flux(tvec& FU, tvec& GU, const tvec& U) {
+		for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+			for (int iy = 1; iy < ny_all-1; ++iy){
+				for (int ix = 1; ix < nx_all-1; ++ix) {
+					real h = U[0][iy*nx_all+ix], hu = U[1][iy*nx_all+ix], hv = U[2][iy*nx_all+ix];
+					FU[0][iy*nx_all+ix] = hu;
+					FU[1][iy*nx_all+ix] = hu*hu/h + (0.5*g)*h*h;
+					FU[2][iy*nx_all+ix] = hu*hv/h;
 
-    // Compute shallow water fluxes F(U), G(U)
-    static void flux(vec& FU, vec& GU, const vec& U) {
-        real h = U[0], hu = U[1], hv = U[2];
+					GU[0][iy*nx_all+ix] = hv;
+					GU[1][iy*nx_all+ix] = hu*hv/h;
+					GU[2][iy*nx_all+ix] = hv*hv/h + (0.5*g)*h*h;
 
-        FU[0] = hu;
-        FU[1] = hu*hu/h + (0.5*g)*h*h;
-        FU[2] = hu*hv/h;
-
-        GU[0] = hv;
-        GU[1] = hu*hv/h;
-        GU[2] = hv*hv/h + (0.5*g)*h*h;
+					}
+				}
+			}	
+		}
     }
 
     // Compute shallow water wave speed
-    static void wave_speed(real& cx, real& cy, const vec& U) {
+    static void wave_speed(real& cx, real& cy, const vtec& U) {
+		
         using namespace std;
-        real h = U[0], hu = U[1], hv = U[2];
-        real root_gh = sqrt(g * h);  // NB: Don't let h go negative!
-        cx = abs(hu/h) + root_gh;
-        cy = abs(hv/h) + root_gh;
+		real cell_cx, cell_cy;
+		for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+			for (int iy = 0; iy < ny_all; ++iy){ // can precompute iy*nxall here (later)
+				for (int ix = 0; ix < nx_all; ++ix) { 
+					real h = U[0][iy*nx_all+ix], hu = U[1][iy*nx_all+ix], hv = U[2][iy*nx_all+ix];
+					real root_gh = sqrt(g * h);  // NB: Don't let h go negative!
+					cell_cx = abs(hu/h) + root_gh;
+					cell_cy = abs(hv/h) + root_gh;										
+					cx = max(cx, cell_cx);
+					cy = max(cy, cell_cy);
+				}
+			}	
+		}	
+		
+		
     }
 };
 

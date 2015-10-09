@@ -97,6 +97,7 @@ class Central2D {
 public:
     typedef typename Physics::real real;
     typedef typename Physics::tvec  tvec;
+    typedef typename Physics::vec  vec;
 
     Central2D(real w, real h,     // Domain width / height
               int nx, int ny,     // Number of cells in x/y (without ghosts)
@@ -131,12 +132,12 @@ public:
     int ysize() const { return ny; }
     
     // Read / write elements of simulation state
-    vec&       operator()(int i, int j) {
-        return u_[offset(i+nghost,j+nghost)];
+    tvec&       operator()(int index, int i, int j) {
+        return u_[index][offset(i+nghost,j+nghost)];
     }
     
-    const vec& operator()(int i, int j) const {
-        return u_[offset(i+nghost,j+nghost)];
+    const tvec& operator()(int index, int i, int j) const {
+        return u_[index][offset(i+nghost,j+nghost)];
     }
     
 private:
@@ -146,7 +147,7 @@ private:
     const int nx_all, ny_all;  // Total cells in x/y (including ghost)
     const real dx, dy;         // Cell size in x/y
     const real cfl;            // Allowed CFL number
-	// initializes new three vec type array
+	// MAG initializes new three vec type array
     tvec u_;            // Solution values
     tvec f_;            // Fluxes in x
     tvec g_;            // Fluxes in y
@@ -155,20 +156,27 @@ private:
     tvec fx_;           // x differences of f
     tvec gy_;           // y differences of g
     tvec v_;            // Solution values at next step
+	
+	tvec uh_; 			// MAG added this, it is u at halfstep
 
     // Array accessor functions
 
     int offset(int ix, int iy) const { return iy*nx_all+ix; }
-	// index =0 1 2, component of u at one point
-    vec& u(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
-    vec& v(int index, int ix, int iy)    { return v_[index][offset(ix,iy)]; }
-    vec& f(int index, int ix, int iy)    { return f_[index][offset(ix,iy)]; }
-    vec& g(int index, int ix, int iy)    { return g_[index][offset(ix,iy)]; }
+	// MAG index = 0 1 2, component of u at one point
+    tvec& u(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
+    tvec& v(int index, int ix, int iy)    { return v_[index][offset(ix,iy)]; }
+    tvec& f(int index, int ix, int iy)    { return f_[index][offset(ix,iy)]; }
+    tvec& g(int index, int ix, int iy)    { return g_[index][offset(ix,iy)]; }
 
-    vec& ux(int index, int ix, int iy)   { return ux_[index][offset(ix,iy)]; }
-    vec& uy(int index, int ix, int iy)   { return uy_[index][offset(ix,iy)]; }
-    vec& fx(int index, int ix, int iy)   { return fx_[index][offset(ix,iy)]; }
-    vec& gy(int index, int ix, int iy)   { return gy_[index][offset(ix,iy)]; }
+    tvec& ux(int index, int ix, int iy)   { return ux_[index][offset(ix,iy)]; }
+    tvec& uy(int index, int ix, int iy)   { return uy_[index][offset(ix,iy)]; }
+    tvec& fx(int index, int ix, int iy)   { return fx_[index][offset(ix,iy)]; }
+    tvec& gy(int index, int ix, int iy)   { return gy_[index][offset(ix,iy)]; }
+	
+	//MAG added corresponding offset function
+	vec& uh(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
+
+	
 
     // Wrapped accessor (periodic BC)
     int ioffset(int ix, int iy) {
@@ -176,14 +184,16 @@ private:
                        (iy+ny-nghost) % ny + nghost );
     }
 
-    vec& uwrap(int index, int ix, int iy)  { return u_[index][ioffset(ix,iy)]; }
-
+    tvec& uwrap(int index, int ix, int iy)  { return u_[index][ioffset(ix,iy)]; }
+	
+	/*MAG:dont need this funciton anymore:
     // Apply limiter to all components in a vector
-    static void limdiff(vec& du, const vec& um, const vec& u0, const vec& up) {
+    static void limdiff(vect& du, const vect& u) {
         for (int m = 0; m < du.size(); ++m)
             du[m] = Limiter::limdiff(um[m], u0[m], up[m]);
     }
-
+	*/
+	
     // Stages of the main algorithm
     void apply_periodic();
     void compute_fg_speeds(real& cx, real& cy);
@@ -205,12 +215,11 @@ private:
  */
 
 template <class Physics, class Limiter>
-template <typename F>
+template <typename F> 
 void Central2D<Physics, Limiter>::init(F f)
-{
+{	///////////////////// have to change the init class
     for (int iy = 0; iy < ny; ++iy)
         for (int ix = 0; ix < nx; ++ix)
-		    // going to have to change the 
             f(u(nghost+ix,nghost+iy), (ix+0.5)*dx, (iy+0.5)*dy);
 }
 
@@ -235,19 +244,26 @@ template <class Physics, class Limiter>
 void Central2D<Physics, Limiter>::apply_periodic()
 {
     // Copy data between right and left boundaries
-    for (int iy = 0; iy < ny_all; ++iy)
-        for (int ix = 0; ix < nghost; ++ix) {
-            u(ix,          iy) = uwrap(ix,          iy);
-            u(nx+nghost+ix,iy) = uwrap(nx+nghost+ix,iy);
-        }
+	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
 
+		for (int iy = 0; iy < ny_all; ++iy){
+			for (int ix = 0; ix < nghost; ++ix) {
+				u(index,ix,          iy) = uwrap(index,ix,          iy);
+				u(index,nx+nghost+ix,iy) = uwrap(index,nx+nghost+ix,iy);
+			}
+		}
+	}
     // Copy data between top and bottom boundaries
-    for (int ix = 0; ix < nx_all; ++ix)
-        for (int iy = 0; iy < nghost; ++iy) {
-            u(ix,          iy) = uwrap(ix,          iy);
-            u(ix,ny+nghost+iy) = uwrap(ix,ny+nghost+iy);
-        }
-}
+	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+	
+		for (int ix = 0; ix < nx_all; ++ix){
+			for (int iy = 0; iy < nghost; ++iy) {
+				u(index,ix,          iy) = uwrap(index,ix,          iy);
+				u(index,ix,ny+nghost+iy) = uwrap(index,ix,ny+nghost+iy);
+			}
+		}
+	}	
+}	
 
 
 /**
@@ -264,18 +280,12 @@ template <class Physics, class Limiter>
 void Central2D<Physics, Limiter>::compute_fg_speeds(real& cx_, real& cy_)
 {
     using namespace std;
-    real cx = 1.0e-15;
-    real cy = 1.0e-15;
-    for (int iy = 0; iy < ny_all; ++iy)
-        for (int ix = 0; ix < nx_all; ++ix) {
-            real cell_cx, cell_cy;
-            Physics::flux(f(ix,iy), g(ix,iy), u(ix,iy));
-            Physics::wave_speed(cell_cx, cell_cy, u(ix,iy));
-            cx = max(cx, cell_cx);
-            cy = max(cy, cell_cy);
-        }
-    cx_ = cx;
-    cy_ = cy;
+
+	// MAG: uses new flux function that takes pointers to tvec
+	Physics::flux(f_, g_, u_);	
+	//MAG: uses new wave speed function (returns bound)
+	Physics::wave_speed(cx_, cy_, u(index,ix,iy));
+
 }
 
 /**
@@ -288,18 +298,18 @@ void Central2D<Physics, Limiter>::compute_fg_speeds(real& cx_, real& cy_)
 
 template <class Physics, class Limiter>
 void Central2D<Physics, Limiter>::limited_derivs()
-{
-    for (int iy = 1; iy < ny_all-1; ++iy)
-        for (int ix = 1; ix < nx_all-1; ++ix) {
-
+{ 
+			//MAG uses new limdiffx limdiffy (tvec du, tvec u);
+			
             // x derivs
-            limdiff( ux(ix,iy), u(ix-1,iy), u(ix,iy), u(ix+1,iy) );
-            limdiff( fx(ix,iy), f(ix-1,iy), f(ix,iy), f(ix+1,iy) );
+			Limiter::limdiffx(ux_, u_);
+			Limiter::limdiffx(fx_, f_);
 
             // y derivs
-            limdiff( uy(ix,iy), u(ix,iy-1), u(ix,iy), u(ix,iy+1) );
-            limdiff( gy(ix,iy), g(ix,iy-1), g(ix,iy), g(ix,iy+1) );
-        }
+			Limiter::limdiffy(uy_, u_);
+			Limiter::limdiffy(gy_, g_);			
+
+        
 }
 
 
@@ -333,42 +343,47 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
    // #pragma omp parallel{
     // Predictor (flux values of f and g at half step)
  //   #pragma omp for
-    for (int iy = 1; iy < ny_all-1; ++iy)
-        for (int ix = 1; ix < nx_all-1; ++ix) {
-            vec uh = u(ix,iy);
-            for (int m = 0; m < uh.size(); ++m) {
-                uh[m] -= dtcdx2 * fx(ix,iy)[m];
-                uh[m] -= dtcdy2 * gy(ix,iy)[m];
-            }
-            Physics::flux(f(ix,iy), g(ix,iy), uh);
-        }
 
+	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+		for (int iy = 1; iy < ny_all-1; ++iy){
+			for (int ix = 1; ix < nx_all-1; ++ix) {
+					uh(index,ix,iy) -= dtcdx2 * fx(index,ix,iy);
+					uh(index,ix,iy) -= dtcdy2 * gy(index,ix,iy);
+				}
+			}
+		}
+   	Physics::flux(f_, g_, uh_);
+
+   
     // Corrector (finish the step)
   //  #pragma omp for
-    for (int iy = nghost-io; iy < ny+nghost-io; ++iy)
-        for (int ix = nghost-io; ix < nx+nghost-io; ++ix) {
-            for (int m = 0; m < v(ix,iy).size(); ++m) {
-                v(ix,iy)[m] =
-                    0.2500 * ( u(ix,  iy)[m] + u(ix+1,iy  )[m] +
-                               u(ix,iy+1)[m] + u(ix+1,iy+1)[m] ) -
-                    0.0625 * ( ux(ix+1,iy  )[m] - ux(ix,iy  )[m] +
-                               ux(ix+1,iy+1)[m] - ux(ix,iy+1)[m] +
-                               uy(ix,  iy+1)[m] - uy(ix,  iy)[m] +
-                               uy(ix+1,iy+1)[m] - uy(ix+1,iy)[m] ) -
-                    dtcdx2 * ( f(ix+1,iy  )[m] - f(ix,iy  )[m] +
-                               f(ix+1,iy+1)[m] - f(ix,iy+1)[m] ) -
-                    dtcdy2 * ( g(ix,  iy+1)[m] - g(ix,  iy)[m] +
-                               g(ix+1,iy+1)[m] - g(ix+1,iy)[m] );
-            }
-        }
+  	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+		for (int iy = nghost-io; iy < ny+nghost-io; ++iy){
+			for (int ix = nghost-io; ix < nx+nghost-io; ++ix) {
+					/// MAG might want to access arrays dirrectly to ease vectorization?
+					v(index,ix,iy) = //MAG: changed indices here to match new indexes
+						0.2500 * ( u(index,ix,  iy) + u(index,ix+1,iy ) +
+								   u(index,ix,iy+1) + u(index,ix+1,iy+1) ) -
+						0.0625 * ( ux(index,ix+1,iy  ) - ux(index,ix,iy  ) +
+								   ux(index,ix+1,iy+1) - ux(index,ix,iy+1) +
+								   uy(index,ix,  iy+1) - uy(index,ix,  iy) +
+								   uy(index,ix+1,iy+1) - uy(index,ix+1,iy) ) -
+						dtcdx2 * ( f(index,ix+1,iy  ) - f(index,ix,iy  ) +
+								   f(index,ix+1,iy+1 - f(index,ix,iy+1) ) -
+						dtcdy2 * ( g(index,ix,  iy+1) - g(index,ix,  iy) +
+								   g(index,ix+1,iy+1) - g(index,ix+1,iy) );
+			}
+		}
+	}
     // Copy from v storage back to main grid
 //    #pragma omp for  
-    for (int j = nghost; j < ny+nghost; ++j){
-        for (int i = nghost; i < nx+nghost; ++i){
-            u(i,j) = v(i-io,j-io);
-        }
+  	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+		for (int j = nghost; j < ny+nghost; ++j){
+			for (int i = nghost; i < nx+nghost; ++i){
+				u(index,i,j) = v(index,i-io,j-io);
+			}
 
-    }
+		}
     }
 }
 

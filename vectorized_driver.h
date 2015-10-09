@@ -43,7 +43,7 @@ typedef Central2D< Shallow2D, MinMod<Shallow2D::real> > Sim;
  */
 // MAG: made new initialization for DAM_BREAK only
 // Circular dam break problem
-void dam_break(Sim::tvec& u, double x, double y, int ix, int iy)
+void dam_break(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
 {
     x -= 1;
     y -= 1;
