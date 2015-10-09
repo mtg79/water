@@ -64,10 +64,10 @@ struct Shallow2D {
     // Type parameters for solver
     typedef float real;
 	// a single vector,  which contains values for all points of the grid
-	typedef std::vector<real> vec;	
+    typedef std::vector<real> vec;	
 
 	// We initialize a 3 x nxall x ny all vector (might have to chance to vector<vector,3>
-	typedef std::array< vec ,3> tvec; //called tvec for three vector
+    typedef std::array< vec ,3> tvec; //called tvec for three vector
 
     // Gravitational force (compile time constant)
     static constexpr real g = 9.8;
@@ -76,8 +76,8 @@ struct Shallow2D {
 	
     // Compute shallow water fluxes F(U), G(U) 
 	//MAG: now updates whole tvec vector
-    static void flux(tvec& FU, tvec& GU, const tvec& U) {
-		for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+    static void flux(tvec& FU, tvec& GU, const tvec& U, int nx_all, int ny_all) {
+		for (int index= 0 ; index < U.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
 			for (int iy = 1; iy < ny_all-1; ++iy){
 				for (int ix = 1; ix < nx_all-1; ++ix) {
 					real h = U[0][iy*nx_all+ix], hu = U[1][iy*nx_all+ix], hv = U[2][iy*nx_all+ix];
@@ -96,11 +96,11 @@ struct Shallow2D {
     }
 
     // Compute shallow water wave speed
-    static void wave_speed(real& cx, real& cy, const vtec& U) {
+    static void wave_speed(real& cx, real& cy, const vtec& U, int nx_all, int ny_all) {
 		
         using namespace std;
 		real cell_cx, cell_cy;
-		for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+		for (int index= 0 ; index < U.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
 			for (int iy = 0; iy < ny_all; ++iy){ // can precompute iy*nxall here (later)
 				for (int ix = 0; ix < nx_all; ++ix) { 
 					real h = U[0][iy*nx_all+ix], hu = U[1][iy*nx_all+ix], hv = U[2][iy*nx_all+ix];

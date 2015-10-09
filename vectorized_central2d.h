@@ -133,10 +133,9 @@ public:
     // Array size accessors
     int xsize() const { return nx; }
     int ysize() const { return ny; }
-	int 
     
     // Read / write elements of simulation state
-    tvec&       operator()(int index, int i, int j) {
+    tvec& operator()(int index, int i, int j) {
         return u_[index][offset(i+nghost,j+nghost)];
     }
     
@@ -178,7 +177,7 @@ private:
     tvec& gy(int index, int ix, int iy)   { return gy_[index][offset(ix,iy)]; }
 	
 	//MAG added corresponding offset function
-	vec& uh(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
+    tvec& uh(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
 
 	
 
