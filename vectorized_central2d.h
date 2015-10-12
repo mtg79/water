@@ -106,20 +106,30 @@ public:
         nx_all(nx + 2*nghost),
         ny_all(ny + 2*nghost),
         dx(w/nx), dy(h/ny),
-        cfl(cfl), 
-		/// have to change the declaration ? make a new function in vectorized_shallow2d.h
-        for(index=0, index < 3, index++){
-			u_[i].resize(nxall*nyall)
-			f_[i].resize(nx_all * ny_all),
-			g_[i].resize(nx_all * ny_all),
-			ux_[i].resize(nx_all * ny_all),
-			uy_[i].resize(nx_all * ny_all),
-			fx_[i].resize(nx_all * ny_all),
-			gy_[i].resize(nx_all * ny_all),
-			v_[i].resize(nx_all * ny_all) 
-		}
-			{}
+        cfl(cfl),
+	u_(3),
+	f_(3),
+	g_(3),
+	ux_(3),
+	uy_(3),
+	fx_(3),
+	gy_(3),
+	v_(3),
+	uh_(3) {}/// have to change the declaration ? make a new function in vectorized_shallow2        
+    void set_tvec_size(){
+	for(int index=0; index < 3; index++){
+			u_[index].resize(nx_all*ny_all);
+			f_[index].resize(nx_all * ny_all);
+			g_[index].resize(nx_all * ny_all);
+			ux_[index].resize(nx_all * ny_all);
+			uy_[index].resize(nx_all * ny_all);
+			fx_[index].resize(nx_all * ny_all);
+			gy_[index].resize(nx_all * ny_all);
+			v_[index].resize(nx_all * ny_all); 
+			uh_[index].resize(nx_all*ny_all); 
 
+    }
+	}
     // Advance from time 0 to time tfinal
     void run(real tfinal);
 
@@ -139,7 +149,7 @@ public:
         return u_[index][offset(i+nghost,j+nghost)];
     }
     
-    const tvec& operator()(int index, int i, int j) const {
+    const real& operator()(int index, int i, int j) const {
         return u_[index][offset(i+nghost,j+nghost)];
     }
     
@@ -166,18 +176,18 @@ private:
 
     int offset(int ix, int iy) const { return iy*nx_all+ix; }
 	// MAG index = 0 1 2, component of u at one point
-    tvec& u(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
-    tvec& v(int index, int ix, int iy)    { return v_[index][offset(ix,iy)]; }
-    tvec& f(int index, int ix, int iy)    { return f_[index][offset(ix,iy)]; }
-    tvec& g(int index, int ix, int iy)    { return g_[index][offset(ix,iy)]; }
+    real& u(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
+    real& v(int index, int ix, int iy)    { return v_[index][offset(ix,iy)]; }
+    real& f(int index, int ix, int iy)    { return f_[index][offset(ix,iy)]; }
+    real& g(int index, int ix, int iy)    { return g_[index][offset(ix,iy)]; }
 
-    tvec& ux(int index, int ix, int iy)   { return ux_[index][offset(ix,iy)]; }
-    tvec& uy(int index, int ix, int iy)   { return uy_[index][offset(ix,iy)]; }
-    tvec& fx(int index, int ix, int iy)   { return fx_[index][offset(ix,iy)]; }
-    tvec& gy(int index, int ix, int iy)   { return gy_[index][offset(ix,iy)]; }
+    real& ux(int index, int ix, int iy)   { return ux_[index][offset(ix,iy)]; }
+    real& uy(int index, int ix, int iy)   { return uy_[index][offset(ix,iy)]; }
+    real& fx(int index, int ix, int iy)   { return fx_[index][offset(ix,iy)]; }
+    real& gy(int index, int ix, int iy)   { return gy_[index][offset(ix,iy)]; }
 	
 	//MAG added corresponding offset function
-    tvec& uh(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
+    real& uh(int index, int ix, int iy)    { return u_[index][offset(ix,iy)]; }
 
 	
 
@@ -187,12 +197,12 @@ private:
                        (iy+ny-nghost) % ny + nghost );
     }
 
-    tvec& uwrap(int index, int ix, int iy)  { return u_[index][ioffset(ix,iy)]; }
+    real uwrap(int index, int ix, int iy)  { return u_[index][ioffset(ix,iy)]; }
 	
 	/*MAG:dont need this funciton anymore:
     // Apply limiter to all components in a vector
     static void limdiff(vect& du, const vect& u) {
-        for (int m = 0; m < du.size(); ++m)
+        for (int m = 0; m < du_.size(); ++m)
             du[m] = Limiter::limdiff(um[m], u0[m], up[m]);
     }
 	*/
@@ -223,7 +233,7 @@ void Central2D<Physics, Limiter>::init(F f)
 {	///////////////////// have to change the init class
     for (int iy = 0; iy < ny; ++iy)
         for (int ix = 0; ix < nx; ++ix)
-            f(u_, (ix+0.5)*dx, (iy+0.5)*dy, nghost+ix, nghost+iy, nxall);
+            f(u_, (ix+0.5)*dx, (iy+0.5)*dy, nghost+ix, nghost+iy, nx_all);
 }
 
 /**
@@ -247,7 +257,7 @@ template <class Physics, class Limiter>
 void Central2D<Physics, Limiter>::apply_periodic()
 {
     // Copy data between right and left boundaries
-	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+	for (int index= 0 ; index < u_.size(); ++index){  /// u_.size() might not give what I want it to ? which is 3
 		for (int iy = 0; iy < ny_all; ++iy){
 			for (int ix = 0; ix < nghost; ++ix) {
 				u(index,ix,          iy) = uwrap(index,ix,          iy);
@@ -256,7 +266,7 @@ void Central2D<Physics, Limiter>::apply_periodic()
 		}
 	}
     // Copy data between top and bottom boundaries
-	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+	for (int index= 0 ; index < u_.size(); ++index){  /// u_.size() might not give what I want it to ? which is 3
 		for (int ix = 0; ix < nx_all; ++ix){
 			for (int iy = 0; iy < nghost; ++iy) {
 				u(index,ix,          iy) = uwrap(index,ix,          iy);
@@ -283,9 +293,9 @@ void Central2D<Physics, Limiter>::compute_fg_speeds(real& cx_, real& cy_)
     using namespace std;
 
 	// MAG: uses new flux function that takes pointers to tvec
-	Physics::flux(f_, g_, u_);	
+	Physics::flux(f_, g_, u_, nx_all, ny_all);	
 	//MAG: uses new wave speed function (returns bound)
-	Physics::wave_speed(cx_, cy_, u(index,ix,iy));
+	Physics::wave_speed(cx_, cy_, u_,nx_all,ny_all);
 
 }
 
@@ -303,12 +313,12 @@ void Central2D<Physics, Limiter>::limited_derivs()
 			//MAG uses new limdiffx limdiffy (tvec du, tvec u);
 			
             // x derivs
-			Limiter::limdiffx(ux_, u_, nx_all);
-			Limiter::limdiffx(fx_, f_, nx_all);
+			Limiter::limdiffx(ux_, u_, nx_all, ny_all);
+			Limiter::limdiffx(fx_, f_, nx_all, ny_all);
 
             // y derivs
-			Limiter::limdiffy(uy_, u_, nx_all);
-			Limiter::limdiffy(gy_, g_, nx_all);			
+			Limiter::limdiffy(uy_, u_, nx_all, ny_all);
+			Limiter::limdiffy(gy_, g_, nx_all, ny_all);			
 
         
 }
@@ -345,7 +355,7 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
     // Predictor (flux values of f and g at half step)
  //   #pragma omp for
 
-	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+	for (int index= 0 ; index < u_.size(); ++index){  /// u_.size() might not give what I want it to ? which is 3
 		for (int iy = 1; iy < ny_all-1; ++iy){
 			for (int ix = 1; ix < nx_all-1; ++ix) {
 					uh(index,ix,iy) -= dtcdx2 * fx(index,ix,iy);
@@ -353,12 +363,12 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
 				}
 			}
 		}
-   	Physics::flux(f_, g_, uh_);
+   	Physics::flux(f_, g_, uh_, nx_all, ny_all);
 
    
     // Corrector (finish the step)
   //  #pragma omp for
-  	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+  	for (int index= 0 ; index < u_.size(); ++index){  /// u_.size() might not give what I want it to ? which is 3
 		for (int iy = nghost-io; iy < ny+nghost-io; ++iy){
 			for (int ix = nghost-io; ix < nx+nghost-io; ++ix) {
 					/// MAG might want to access arrays dirrectly to ease vectorization?
@@ -372,13 +382,13 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
 						dtcdx2 * ( f(index,ix+1,iy  ) - f(index,ix,iy  ) +
 								   f(index,ix+1,iy+1 - f(index,ix,iy+1) ) -
 						dtcdy2 * ( g(index,ix,  iy+1) - g(index,ix,  iy) +
-								   g(index,ix+1,iy+1) - g(index,ix+1,iy) );
+								   g(index,ix+1,iy+1) - g(index,ix+1,iy) ) );
 			}
 		}
 	}
     // Copy from v storage back to main grid
 //    #pragma omp for  
-  	for (int index= 0 ; index < u.size(); ++index){  /// u.size() might not give what I want it to ? which is 3
+  	for (int index= 0 ; index < u_.size(); ++index){  /// u_.size() might not give what I want it to ? which is 3
 		for (int j = nghost; j < ny+nghost; ++j){
 			for (int i = nghost; i < nx+nghost; ++i){
 				u(index,i,j) = v(index,i-io,j-io);
@@ -445,18 +455,20 @@ void Central2D<Physics, Limiter>::solution_check()
 {
     using namespace std;
     real h_sum = 0, hu_sum = 0, hv_sum = 0;
-    real hmin = u(nghost,nghost)[0];
+    real hmin = u(0,nghost,nghost);
     real hmax = hmin;
     for (int j = nghost; j < ny+nghost; ++j)
         for (int i = nghost; i < nx+nghost; ++i) {
-            vec& uij = u(i,j);
-            real h = uij[0];
+            
+            real h = u(0, i, j);
             h_sum += h;
-            hu_sum += uij[1];
-            hv_sum += uij[2];
+            hu_sum += u(1,i,j);
+            hv_sum += u(2,i,j);
             hmax = max(h, hmax);
             hmin = min(h, hmin);
-            assert( h > 0) ;
+	    if (h<= 0 ){
+		printf("%d, %d failed", i, j); } 
+           assert( h > 0) ;
         }
     real cell_area = dx*dy;
     h_sum *= cell_area;

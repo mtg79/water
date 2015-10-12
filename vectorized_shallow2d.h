@@ -67,7 +67,7 @@ struct Shallow2D {
     typedef std::vector<real> vec;	
 
 	// We initialize a 3 x nxall x ny all vector (might have to chance to vector<vector,3>
-    typedef std::array< vec ,3> tvec; //called tvec for three vector
+    typedef std::vector<vec> tvec; //called tvec for three vector
 
     // Gravitational force (compile time constant)
     static constexpr real g = 9.8;
@@ -93,10 +93,10 @@ struct Shallow2D {
 				}
 			}	
 		}
-    }
+    
 
     // Compute shallow water wave speed
-    static void wave_speed(real& cx, real& cy, const vtec& U, int nx_all, int ny_all) {
+    static void wave_speed(real& cx, real& cy, const tvec& U, int nx_all, int ny_all) {
 		
         using namespace std;
 		real cell_cx, cell_cy;

@@ -73,7 +73,7 @@ struct MinMod {
     // Limited combined slope estimate
 	// MAG: passed pointers instead of scalars, compute x derivative
 	
-    static real limdiffx(tvec& du, const tvec& u, int nx_all) {
+    static real limdiffx(tvec& du, const tvec& u, int nx_all, int ny_all) {
 		for(int index=0; index < u.size(); ++index){
 			for (int iy = 1; iy < ny_all-1; ++iy){
 				for (int ix = 1; ix < nx_all-1; ++ix) {		
@@ -88,7 +88,7 @@ struct MinMod {
 		}
 	}
 	// MAG: passed pointers instead of scalars, compute y derivative
-	static real limdiffy(tvec& du, const tvec& u, int nx_all) {
+	static real limdiffy(tvec& du, const tvec& u, int nx_all, int ny_all) {
 		for(int index=0; index < u.size(); ++index){
 			for (int iy = 1; iy < ny_all-1; ++iy){
 				for (int ix = 1; ix < nx_all-1; ++ix) {		

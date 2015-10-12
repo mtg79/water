@@ -30,8 +30,8 @@
  * limiter:
  */
 
-typedef Central2D< Shallow2D, MinMod<Shallow2D::real> > Sim;
-
+typedef Central2D< Shallow2D, MinMod<Shallow2D::real, Shallow2D> > Sim;
+typedef Shallow2D::tvec tvec;
 /**
  * ## Initial states
  * 
@@ -44,38 +44,46 @@ typedef Central2D< Shallow2D, MinMod<Shallow2D::real> > Sim;
 // MAG: made new initialization for DAM_BREAK only
 // Circular dam break problem
 void dam_break(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
-{	Sim::get
+{
     x -= 1;
     y -= 1;
+   
     u[0][iy*nx_all+ix] = 1.0 + 0.5*(x*x + y*y < 0.25+1e-5);
     u[1][iy*nx_all+ix] = 0;
     u[2][iy*nx_all+ix] = 0;
 }
 
 // Still pond (ideally, nothing should move here!)
-void pond(Sim::vec& u, double x, double y)
+void pond(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
 {
-    u[0] = 1.0;
-    u[1] = 0;
-    u[2] = 0;
+  
+    u[0][iy*nx_all+ix] = 1.0;
+    u[1][iy*nx_all+ix] = 0;
+    u[2][iy*nx_all+ix] = 0;
+
+
 }
 
 // River (ideally, the solver shouldn't do much with this, either)
-void river(Sim::vec& u, double x, double y)
+void river(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
 {
-    u[0] = 1.0;
-    u[1] = 1.0;
-    u[2] = 0;
+  
+    u[0][iy*nx_all+ix] = 1.0;
+    u[1][iy*nx_all+ix] = 1;
+    u[2][iy*nx_all+ix] = 0;
+  
+   
 }
 
 
 // Wave on a river -- develops a shock in finite time!
-void wave(Sim::vec& u, double x, double y)
+void wave(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all)
 {
     using namespace std;
-    u[0] = 1.0 + 0.2 * sin(M_PI*x);
-    u[1] = 1.0;
-    u[2] = 0;
+  
+    u[0][iy*nx_all+ix] = 1.0 + 0.2*sin(M_PI*x);
+    u[1][iy*nx_all+ix] = 1;
+    u[2][iy*nx_all+ix] = 0; 
 }
 
 
@@ -125,7 +133,7 @@ int main(int argc, char** argv)
         }
     }
 
-    void (*icfun)(Sim::vec& u, double x, double y) = dam_break;
+    void (*icfun)(Sim::tvec& u, double x, double y, int ix, int iy, int nx_all) = dam_break;
     if (ic == "dam_break") {
         icfun = dam_break;
     } else if (ic == "pond") {
@@ -139,6 +147,7 @@ int main(int argc, char** argv)
     }
     
     Sim sim(width,width, nx,nx);
+    sim.set_tvec_size();
     SimViz<Sim> viz(fname.c_str(), sim);
     sim.init(icfun);
     sim.solution_check();
