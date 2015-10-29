@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cassert>
 #include <vector>
-#include <omp.h>
+//#include <omp.h>
 //ldoc on
 /**
  * # Jiang-Tadmor central difference scheme
@@ -380,9 +380,14 @@ void Central2D<Physics, Limiter>::compute_step(int io, real dt)
 								   uy(index,ix,  iy+1) - uy(index,ix,  iy) +
 								   uy(index,ix+1,iy+1) - uy(index,ix+1,iy) ) -
 						dtcdx2 * ( f(index,ix+1,iy  ) - f(index,ix,iy  ) +
-								   f(index,ix+1,iy+1 - f(index,ix,iy+1) ) -
+								   f(index,ix+1,iy+1 )- f(index,ix,iy+1) ) -
 						dtcdy2 * ( g(index,ix,  iy+1) - g(index,ix,  iy) +
-								   g(index,ix+1,iy+1) - g(index,ix+1,iy) ) );
+								   g(index,ix+1,iy+1) - g(index,ix+1,iy) ) ;
+				
+			if (!(v(0,ix,iy)>0)){ 
+				printf("error at v %d %d comp: %g \n", ix, iy, v(0,ix,iy));
+			}	
+			assert (v(0, ix, iy)>0);
 			}
 		}
 	}
@@ -458,7 +463,7 @@ void Central2D<Physics, Limiter>::solution_check()
     real hmin = u(0,nghost,nghost);
     real hmax = hmin;
     for (int j = nghost; j < ny+nghost; ++j)
-        for (int i = nghost; i < nx+nghost; ++i) {
+        for (int i = nghost; i < nx+nghost; ++i){
             
             real h = u(0, i, j);
             h_sum += h;
@@ -466,9 +471,11 @@ void Central2D<Physics, Limiter>::solution_check()
             hv_sum += u(2,i,j);
             hmax = max(h, hmax);
             hmin = min(h, hmin);
-	    if (h<= 0 ){
-		printf("%d, %d failed", i, j); } 
-           assert( h > 0) ;
+	    if (!(h > 0.0 )){
+		printf("%g: %d, %d\n",h, i, j);
+		  }
+	    
+            assert( h > 0) ;
         }
     real cell_area = dx*dy;
     h_sum *= cell_area;

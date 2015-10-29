@@ -152,6 +152,7 @@ int main(int argc, char** argv)
     sim.init(icfun);
     sim.solution_check();
     viz.write_frame();
+    printf("passed init\n");
     for (int i = 0; i < frames; ++i) {
 #ifdef _OPENMP
         double t0 = omp_get_wtime();
@@ -161,6 +162,7 @@ int main(int argc, char** argv)
 #else
         sim.run(ftime);
 #endif
+      	printf("finished run\n");
         sim.solution_check();
         viz.write_frame();
     }

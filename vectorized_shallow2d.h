@@ -104,7 +104,9 @@ struct Shallow2D {
 			for (int iy = 0; iy < ny_all; ++iy){ // can precompute iy*nxall here (later)
 				for (int ix = 0; ix < nx_all; ++ix) { 
 					real h = U[0][iy*nx_all+ix], hu = U[1][iy*nx_all+ix], hv = U[2][iy*nx_all+ix];
-					real root_gh = sqrt(g * h);  // NB: Don't let h go negative!
+					real root_gh = sqrt(g * h); 
+					if (!(h>0)){ printf("wave: error h=%g \n",h);}
+					assert(root_gh >=0); // NB: Don't let h go negative!
 					cell_cx = abs(hu/h) + root_gh;
 					cell_cy = abs(hv/h) + root_gh;										
 					cx = max(cx, cell_cx);
